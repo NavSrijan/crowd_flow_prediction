@@ -1,3 +1,4 @@
+
 import ast
 import fnmatch
 import geopandas as gpd
@@ -6,7 +7,6 @@ import numpy as np
 import os
 from operator import itemgetter
 import pandas as pd
-import requests
 import skmob
 from shapely.geometry import Point
 import shapely.wkt
@@ -15,39 +15,47 @@ import time
 from src.AdjNet.utils.config import Config
 from zipfile import ZipFile
 
-# dataset_file = "data/BikeNYC/BikeNYC.zip"
-dataset_directory = "data/BikeNYC/"
+dataset_file = "data/BikeNYC/202502-citibike-tripdata.zip"
+
 
 
 tile_size = 1000
 sample_time = '60min'
 
-def load_dataset(tile_size=1000, sample_time='60min'):
-    for month in [4, 5, 6, 7, 8, 9]:
-        if not os.path.isfile(dataset_directory+"20140"+str(month)+"-citibike-tripdata.zip"):
-            url = 'https://s3.amazonaws.com/tripdata/20140'+str(month)+'-citibike-tripdata.zip'
-            r = requests.get(url, allow_redirects=True)
-            open(dataset_directory+"20140"+str(month)+"-citibike-tripdata.zip", 'wb').write(r.content)
-            print("Downloaded month: ", month)
 
-    print("Loading data...")
-    zip_files = [f for f in os.listdir(dataset_directory) if f.endswith('.zip')]
-    data = [pd.read_csv(dataset_directory+file_name) for file_name in zip_files]
-    df = pd.concat(data)
-    # if dataset_file.endswith('.zip'):
-    #     with ZipFile(dataset_file) as zipfiles:
-    #         file_list = zipfiles.namelist()
-            
-    #         #get only the csv files
-    #         csv_files = fnmatch.filter(file_list, "*.csv")
-            
-    #         #iterate with a list comprehension to get the individual dataframes
-    #         data = [pd.read_csv(zipfiles.open(file_name)) for file_name in csv_files]
-    #         df = pd.concat(data)
-    # else:
-    #     df = pd.read_csv(dataset_file, sep=',')
+def load_dataset(tile_size=1000, sample_time='60min'):
+    print("Loading data from zip file...")
+    if dataset_file.endswith('.zip'):
+        with ZipFile(dataset_file) as zipfiles:
+            file_list = zipfiles.namelist()
+            # get only the csv files
+            csv_files = fnmatch.filter(file_list, "*.csv")
+            # iterate with a list comprehension to get the individual dataframes
+            data = [
+                pd.read_csv(
+                    zipfiles.open(file_name),
+                    dtype={"start_station_id": str, "end_station_id": str},
+                    low_memory=False,
+                )
+                for file_name in csv_files
+            ]
+            df = pd.concat(data)
+    else:
+        df = pd.read_csv(dataset_file, sep=',')
     print("Data loaded...")
     print("Preprocessing")
+
+    df = df.rename(
+        columns={
+            "started_at": "starttime",
+            "start_lat": "start station latitude",
+            "start_lng": "start station longitude",
+            "ended_at": "stoptime",
+            "end_lat": "end station latitude",
+            "end_lng": "end station longitude",
+            "ride_id": "bikeid",
+        }
+    )
 
 
     # tessellation = tilers.tiler.get("squared", base_shape="Manhattan, New York City, USA", meters=tile_size)

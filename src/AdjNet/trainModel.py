@@ -111,7 +111,7 @@ def train_and_evaluate(tile_size, sample_time, nb_epoch, exp, time_steps, batch_
 
                 out = net(A_wave, local_batch)
                 val_loss = loss_criterion(out, local_labels).to(device="cpu")
-                local_val.append(np.asscalar(val_loss.detach().numpy()))
+                local_val.append(val_loss.detach().item())
 
             validation_losses.append(np.mean(local_val))
             std_val, mean_val = val_dataset.get_stats()['std'], val_dataset.get_stats()['mean']

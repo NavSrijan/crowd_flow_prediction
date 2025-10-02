@@ -2,8 +2,7 @@ from __future__ import print_function
 import os
 import platform
 
-class Config_setup(object):
-    """docstring for Config"""
+class Config_setup(type):  # must inherit from type
     _instances = {}
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
@@ -12,19 +11,14 @@ class Config_setup(object):
             cls._instances[cls].__init__(*args, **kwargs)
         return cls._instances[cls]
 
+class Config(metaclass=Config_setup):
     def __init__(self, DATAPATH=None):
-        super(Config, self).__init__()
-
         if DATAPATH is None:
             DATAPATH = os.environ.get('DATAPATH')
             if DATAPATH is None:
-                if platform.system() == "Windows" or platform.system() == "Linux":
-                    # DATAPATH = "D:/data/traffic_flow"
-                # elif platform.system() == "Linux":
+                if platform.system() in ("Windows", "Linux"):
                     DATAPATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../..', 'data')
                 else:
-                    print("Unsupported/Unknown OS: ", platform.system, "please set DATAPATH")
+                    print("Unsupported/Unknown OS:", platform.system(), "please set DATAPATH")
         self.DATAPATH = DATAPATH
-        
-class Config(metaclass=Config_setup):
-    pass
+
